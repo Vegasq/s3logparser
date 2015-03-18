@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Copyright 2015 Mykola Yakovliev <vegasq@gmail.com>
 
 import csv
@@ -21,10 +22,12 @@ class S3LogParser(object):
         r'(?P<turnaround>\S+) (?P<referrer>"[^"]*") (?P<useragent>"[^"]*") ' +
         r'(?P<version>\S)')
 
-    def __init__(self, log_dir=None):
+    def __init__(self, log_dir=None, output_file=None):
         """Initial data"""
         if log_dir:
             self.LOG_DIR = log_dir
+        if output_file:
+            self.OUTPUT_FILE = output_file
         self.log_files = os.listdir(self.LOG_DIR)
         self.data = []
 
@@ -51,7 +54,7 @@ class S3LogParser(object):
         """Cur log rows"""
         return logs
 
-    def build_data(self):
+    def build_data(self, do):
         """Parse simple log parser"""
         for log_file in self.logs:
             rows = open(log_file, 'r').readlines()
@@ -60,13 +63,16 @@ class S3LogParser(object):
                     self.data.append(self.REGEX.findall(row)[0])
                 except IndexError:
                     pass
+        self.data = do(self.data)
 
-    def do(self, do):
-        """Pass logs to custom representor"""
-        return do(self.data)
+    def to_csv(self):
+        with open(self.OUTPUT_FILE, 'wb') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            for line in self.data:
+                writer.writerow([line, self.data[line]])
 
 
-def popular_files(data, limit=100):
+def popular_files(data):
     response = {}
     for row in data:
         line = {
@@ -78,15 +84,3 @@ def popular_files(data, limit=100):
             response[line['url']] = 0
         response[line['url']] += 1
     return response
-
-
-def to_csv(data):
-    with open('log.csv', 'wb') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        for line in data:
-            writer.writerow([line, data[line]])
-
-if __name__ == '__main__':
-    s3l = S3LogParser()
-    s3l.build_data()
-    to_csv(s3l.do(popular_files))
