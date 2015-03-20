@@ -32,37 +32,21 @@ class S3LogParser(object):
         self.data = []
 
     @property
-    def logs(self, date_from=None, date_to=None):
+    def logs(self):
         """
         Should return list of lg files with some rules
         """
-        if date_from and date_to:
-            pass
-        elif date_to:
-            pass
-        elif date_from:
-            pass
-
-        return ["%s%s" %  (self.LOG_DIR, log) \
-            for log in self._filter_log_files(self.log_files)]
-
-    def _filter_log_files(self, logs):
-        """Cut log files based on their  filenames"""
-        return logs
-
-    def _filter_log_rows(self, logs):
-        """Cur log rows"""
-        return logs
+        return ["%s%s" %  (self.LOG_DIR, log) for log in self.log_files]
 
     def build_data(self, do):
         """Parse simple log parser"""
         for log_file in self.logs:
-            rows = open(log_file, 'r').readlines()
-            for row in rows:
-                try:
+            try:
+                rows = open(log_file, 'r').readlines()
+                for row in rows:
                     self.data.append(self.REGEX.findall(row)[0])
-                except IndexError:
-                    pass
+            except (IOError, IndexError):
+                continue
         self.data = do(self.data)
 
     def to_csv(self):
